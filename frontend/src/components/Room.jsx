@@ -4,6 +4,7 @@ import { Grid, Button, Typography } from '@mui/material'
 import { Link } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import CreateRoomPage from '../pages/CreateRoomPage'
+import MusicPlayer from './MusicPlayer'
 
 
 
@@ -17,6 +18,7 @@ const Room = () => {
         isHost: false,
         showSettings: false,
         spotifyAuthenticated: false,
+        song: {},
     })
 
     const { roomCode } = useParams()
@@ -25,9 +27,9 @@ const Room = () => {
         fetch(`http://127.0.0.1:8000/api/get-room?code=${roomCode}`, { credentials: 'include' })
             .then((response) => {
                 if (!response.ok) {
-                    throw new Error('Error fetching room details');
+                    throw new Error('Error fetching room details')
                 }
-                return response.json();
+                return response.json()
             })
             .then((data) => {
                 setRoomSettings({
@@ -40,8 +42,18 @@ const Room = () => {
 
 
     useEffect(() => {
+        const interval = setInterval(getCurrentSong, 100000);
+
+        return () => {
+            clearInterval(interval)
+        }
+    }, [])
+
+
+    useEffect(() => {
         getRoomDetails()
         authenticatedSpotify()
+        getCurrentSong()
     }, [])
 
     const authenticatedSpotify = () => {
@@ -62,6 +74,24 @@ const Room = () => {
                             window.location.replace(data.url);
                         });
                 }
+            });
+    }
+
+    const getCurrentSong = () => {
+        fetch("http://127.0.0.1:8000/spotify/current-song", { credentials: 'include' })
+            .then((response) => {
+                if (!response.ok) {
+                    return {};
+                } else {
+                    return response.json()
+                }
+            })
+            .then((data) => {
+                setRoomSettings((prev) => ({
+                    ...prev,
+                    song: data,
+                }))
+                console.log(data);
             });
     }
 
@@ -88,75 +118,51 @@ const Room = () => {
 
     return (
         <>
-            {roomSettings.showSettings ? (
-                <div>
-                    <Grid container spacing={1}>
-                        <Grid item xs={12} align="center">
-                            <CreateRoomPage
-                                update={true}
-                                votesToSkip={roomSettings.votesToSkip}
-                                guestCanPause={roomSettings.guestCanPause}
-                                roomCode={roomCode}
-                                updateCallBack={getRoomDetails}
-                            />
-                        </Grid>
-                        <Grid item xs={12} align="center">
-                            <Button
-                                variant="contained"
-                                color="secondary"
-                                onClick={updateShowSettings}
-                            >
-                                Close
-                            </Button>
-                        </Grid>
-                    </Grid>
-                </div>
-            ) : (
-                <div>
-                    <Grid container spacing={1}>
-                        <Grid item xs={12} align="center">
-                            <Typography variant="h4" component="h4">
-                                Code: {roomCode}
-                            </Typography>
-                        </Grid>
-                        <Grid item xs={12} align="center">
-                            <Typography variant="h6" component="h6">
-                                Votes: {roomSettings.votesToSkip}
-                            </Typography>
-                        </Grid>
-                        <Grid item xs={12} align="center">
-                            <Typography variant="h6" component="h6">
-                                Guest Can Pause: {roomSettings.guestCanPause.toString()}
-                            </Typography>
-                        </Grid>
-                        <Grid item xs={12} align="center">
-                            <Typography variant="h6" component="h6">
-                                Host: {roomSettings.isHost.toString()}
-                            </Typography>
-                        </Grid>
-                        <Grid item xs={12} align="center">
-                            <Button
-                                variant="contained"
-                                color="secondary"
-                                onClick={leaveButtonPressed}
-                            >
-                                Leave Room
-                            </Button>
-                        </Grid>
+            <div>
+                <Grid container spacing={1}>
+                    <Grid item xs={12} align="center">
+                        <Typography variant="h4" component="h4">
+                            Code: {roomCode}
+                        </Typography>
                     </Grid>
                     <Grid item xs={12} align="center">
-                        {roomSettings.isHost &&
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                onClick={updateShowSettings}
-                            >
-                                Settings
-                            </Button>
-                        }
+                        <Typography variant="h6" component="h6">
+                            Votes: {roomSettings.votesToSkip}
+                        </Typography>
                     </Grid>
-                </div>
-            )}
+                    <MusicPlayer {...roomSettings.song} />
+                    <Grid item xs={12} align="center">
+                        <Typography variant="h6" component="h6">
+                            Guest Can Pause: {roomSettings.guestCanPause.toString()}
+                        </Typography>
+                    </Grid>
+                    <Grid item xs={12} align="center">
+                        <Typography variant="h6" component="h6">
+                            Host: {roomSettings.isHost.toString()}
+                        </Typography>
+                    </Grid>
+                    <Grid item xs={12} align="center">
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            onClick={leaveButtonPressed}
+                        >
+                            Leave Room
+                        </Button>
+                    </Grid>
+                </Grid>
+                <Grid item xs={12} align="center">
+                    {roomSettings.isHost &&
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={updateShowSettings}
+                        >
+                            Settings
+                        </Button>
+                    }
+                </Grid>
+            </div>
         </>
     )
 }

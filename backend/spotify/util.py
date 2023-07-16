@@ -1,6 +1,7 @@
 from .models import SpotifyToken
 from django.utils import timezone
 from datetime import timedelta
+import requests
 from requests import post, put, get
 import environ
 from pathlib import Path
@@ -67,7 +68,6 @@ def refresh_spotify_token(session_id):
     access_token = response.get('access_token')
     token_type = response.get('token_type')
     expires_in = response.get('expires_in')
-    refresh_token = response.get('refresh_token')
 
     update_or_create_user_tokens(
         session_id, access_token, token_type, expires_in, refresh_token)
@@ -76,9 +76,10 @@ def refresh_spotify_token(session_id):
 def execute_spotify_api_request(session_id, endpoint, post_=False, put_=False):
     print("execute session_id: ", session_id)
     tokens = get_user_tokens(session_id)
+    print("execute access token: ", tokens.access_token)
     print("execute: ", tokens)
     headers = {'Content-Type': 'application/json',
-               'Authorization': "Bearer " + "BQDzq-ouepOgETJnXGC2wQp91OQgZGNy1BEo9VCRCZxGNXV6vkjujGmnM61UqjRPFBLgCWPW4CrLxbupa5wEVUuwDgE-hhg03c_tpJas_fKU6G0G4j5vkhQPV_5FzlOj-ztyO2o3tS2wLqFF7WVpdb5fLw_XqCeKlTdfUJNQqIH-EjkxGRdF3xvf"}
+               'Authorization': "Bearer " + tokens.access_token}
 
     if post_:
         post(BASE_URL + endpoint, headers=headers)
@@ -86,7 +87,23 @@ def execute_spotify_api_request(session_id, endpoint, post_=False, put_=False):
         put(BASE_URL + endpoint, headers=headers)
 
     response = get(BASE_URL + endpoint, {}, headers=headers)
+    print(response)
+    
     try:
+        response = get(BASE_URL + endpoint, {}, headers=headers)
+        response.raise_for_status()
         return response.json()
-    except:
+    except requests.exceptions.RequestException as e:
+        print("API request error:", str(e))
         return {'Error': 'Issue with request'}
+
+
+def play_song(session_id):
+    return execute_spotify_api_request(session_id, "player/play", put_=True)
+
+
+def pause_song(session_id):
+    return execute_spotify_api_request(session_id, "player/pause", put_=True)
+
+def skip_song(session_id):
+    return execute_spotify_api_request(session_id, "player/next", post_=True)
