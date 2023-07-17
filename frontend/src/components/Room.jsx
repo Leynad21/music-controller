@@ -125,11 +125,6 @@ const Room = () => {
                             Code: {roomCode}
                         </Typography>
                     </Grid>
-                    <Grid item xs={12} align="center">
-                        <Typography variant="h6" component="h6">
-                            Votes: {roomSettings.votesToSkip}
-                        </Typography>
-                    </Grid>
                     <MusicPlayer {...roomSettings.song} />
                     <Grid item xs={12} align="center">
                         <Typography variant="h6" component="h6">

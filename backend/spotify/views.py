@@ -125,7 +125,7 @@ class PauseSong(APIView):
     def put(self, response, format=None):
         room_code = self.request.session.get('room_code')
         room = Room.objects.filter(code=room_code)[0]
-        if self.request.session.session_key == room.host or room.guest_can_pause:
+        if self.request.session.session_key == room.host or room.guestCanPause:
             pause_song(room.host)
             return Response({}, status=status.HTTP_204_NO_CONTENT)
         
@@ -147,14 +147,19 @@ class SkipSong(APIView):
         room_code = self.request.session.get('room_code')
         room = Room.objects.filter(code=room_code)[0]
         votes = Vote.objects.filter(room=room, song_id=room.currentSong)
-        votes_needed = room.votes_to_skip
-
+        votes_needed = room.votesToSkip
         if self.request.session.session_key == room.host or len(votes) + 1 >= votes_needed:
             votes.delete()
             skip_song(room.host)
         else:
+        
             vote = Vote(user=self.request.session.session_key,
-                        room=room, song_id=room.current_song)
-            vote.save()
+                        room=room, song_id=room.currentSong)
+            if vote:
+                print("Cannot vote twice")
+                print(vote)
+            else:
+                vote.save()
+                print(vote)
 
         return Response({}, status.HTTP_204_NO_CONTENT)
